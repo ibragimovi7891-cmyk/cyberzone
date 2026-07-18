@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cyber X-Terminal | Dashboard</title>
+    <!-- Tailwind CSS va Ikonkalar -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #050505; color: #00ff66; font-family: 'Courier New', Courier, monospace; }
+        #matrixCanvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; opacity: 0.15; }
+        .cyber-box { background: rgba(10, 10, 10, 0.85); border: 1px solid #00ff66; box-shadow: 0 0 15px rgba(0, 255, 102, 0.2); }
+        .cyber-input { background: #111; border: 1px solid #005511; color: #00ff66; }
+        .cyber-input:focus { border-color: #00ff66; outline: none; box-shadow: 0 0 10px rgba(0, 255, 102, 0.4); }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #00ff66; border-radius: 3px; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <!-- Matrix Fon -->
+    <canvas id="matrixCanvas"></canvas>
+
+    <div class="max-w-6xl mx-auto">
+        <!-- Bosh Sarlavha -->
+        <header class="text-center mb-8 border-b border-emerald-900 pb-4">
+            <h1 class="text-3xl font-bold tracking-widest text-emerald-400"><i class="fa-solid fa-terminal text-pulse mr-2"></i>CYBER X-TERMINAL v2.0</h1>
+            <p class="text-xs text-emerald-600 mt-1">Tizim holati: Xavfsiz | Operativ monitoring boshqaruv paneli</p>
+        </header>
+
+        <!-- Asosiy Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Chap blok: Instrumentlar -->
+            <div class="lg:col-span-1 space-y-6">
+                
+                <!-- HASH Generator -->
+                <div class="cyber-box p-5 rounded-xl">
+                    <h3 class="font-bold text-sm uppercase tracking-wider mb-3 text-emerald-400"><i class="fa-solid fa-shield-halved mr-2"></i>Hash Generator</h3>
+                    <p class="text-xs text-emerald-600 mb-2">Matnni xavfsiz kodga o'giring:</p>
+                    <input type="text" id="hashInput" oninput="generateHash()" placeholder="Matn yozing..." class="w-full p-2 rounded cyber-input text-sm mb-3">
+                    <div class="space-y-2 text-xs">
+                        <div>
+                            <span class="text-emerald-600 font-bold">Pseudo-SHA256:</span>
+                            <div id="sha256Result" class="bg-black/50 p-2 border border-emerald-950 rounded break-all mt-1 text-slate-300">Natija kutilmoqda...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Parol Auditi -->
+                <div class="cyber-box p-5 rounded-xl">
+                    <h3 class="font-bold text-sm uppercase tracking-wider mb-3 text-emerald-400"><i class="fa-solid fa-key mr-2"></i>Password Auditor</h3>
+                    <p class="text-xs text-emerald-600 mb-2">Parol mustahkamligini sinang:</p>
+                    <input type="password" id="passInput" oninput="auditPassword()" placeholder="Parol kiriting..." class="w-full p-2 rounded cyber-input text-sm mb-3">
+                    <div class="h-2 w-full bg-emerald-950 rounded-full overflow-hidden mb-2">
+                        <div id="strengthBar" class="h-full bg-red-600 w-0 transition-all duration-300"></div>
+                    </div>
+                    <span id="strengthText" class="text-xs text-red-500 font-bold">Juda zaif</span>
+                </div>
+
+            </div>
+
+            <!-- O'ng blok: Interactive Terminal -->
+            <div class="lg:col-span-2">
+                <div class="cyber-box rounded-xl overflow-hidden flex flex-col h-[450px]">
+                    <!-- Terminal Header -->
+                    <div class="bg-emerald-950/40 px-4 py-2 flex justify-between items-center border-b border-emerald-900 text-xs">
+                        <span class="text-emerald-400 font-bold"><i class="fa-solid fa-square-terminal mr-2"></i>core_shell@main_mainframe</span>
+                        <div class="flex gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-red-500 block"></span>
+                            <span class="w-2.5 h-2.5 rounded-full bg-yellow-500 block"></span>
+                            <span class="w-2.5 h-2.5 rounded-full bg-green-500 block"></span>
+                        </div>
+                    </div>
+                    
+                    <!-- Terminal Oynasi -->
+                    <div id="terminalBody" class="p-4 flex-1 overflow-y-auto text-xs space-y-2 font-mono">
+                        <p class="text-emerald-600">[Tizim ishga tushdi: Muvaqqiyatli]</p>
+                        <p class="text-emerald-600">Yordam uchun <span class="text-white font-bold">"help"</span> deb yozing va Enter bosing.</p>
+                    </div>
+
+                    <!-- Terminal Input -->
+                    <div class="p-3 border-t border-emerald-900 bg-black/40 flex items-center gap-2">
+                        <span class="text-emerald-400 text-sm font-bold">$</span>
+                        <input type="text" id="terminalInput" placeholder="Buyruq kiriting..." class="flex-1 bg-transparent border-none text-emerald-400 text-sm outline-none focus:ring-0 font-mono">
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // Matrix Canvas Effekti
+        const canvas = document.getElementById('matrixCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const letters = "01ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%-=+*";
+        const fontSize = 14;
+        const columns = canvas.width / fontSize;
+        const drops = Array(Math.floor(columns)).fill(1);
+
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(5, 5, 5, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = '#00ff66';
+            ctx.font = fontSize + 'px monospace';
+            
+            for (let i = 0; i < drops.length; i++) {
+                const text = letters[Math.floor(Math.random() * letters.length)];
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+        setInterval(drawMatrix, 33);
+
+        // Hash simulyatori
+        function generateHash() {
+            const input = document.getElementById('hashInput').value;
+            if(!input) {
+                document.getElementById('sha256Result').innerText = "Natija kutilmoqda...";
+                return;
+            }
+            // Oddiygina satrni xakerlik ko'rinishiga o'tkazish (Visual algoritm)
+            let hash = "";
+            let fullStr = input + "salt_cyber_security_2026";
+            for (let i = 0; i < fullStr.length; i++) {
+                hash += fullStr.charCodeAt(i).toString(16);
+            }
+            while(hash.length < 64) hash += "f";
+            document.getElementById('sha256Result').innerText = "0x" + hash.substring(0, 64);
+        }
+
+        // Parol auditi
+        function auditPassword() {
+            const pass = document.getElementById('passInput').value;
+            const bar = document.getElementById('strengthBar');
+            const text = document.getElementById('strengthText');
+            
+            let score = 0;
+            if (pass.length > 6) score++;
+            if (pass.length > 10) score++;
+            if (/[A-Z]/.test(pass)) score++;
+            if (/[0-9]/.test(pass)) score++;
+            if (/[^A-Za-z0-9]/.test(pass)) score++;
+
+            if(pass.length === 0) {
+                bar.style.width = "0%";
+                text.innerText = "Kutilmoqda";
+                text.className = "text-xs text-gray-500 font-bold";
+            } else if (score <= 2) {
+                bar.style.width = "30%";
+                bar.className = "h-full bg-red-600 transition-all";
+                text.innerText = "Zaif (Oson buziladi)";
+                text.className = "text-xs text-red-500 font-bold";
+            } else if (score <= 4) {
+                bar.style.width = "60%";
+                bar.className = "h-full bg-yellow-500 transition-all";
+                text.innerText = "O'rtacha (Yaxshiroq qiling)";
+                text.className = "text-xs text-yellow-500 font-bold";
+            } else {
+                bar.style.width = "100%";
+                bar.className = "h-full bg-green-500 transition-all";
+                text.innerText = "Daxshatli kuchli (Buzib bo'lmaydi!)";
+                text.className = "text-xs text-green-400 font-bold";
+            }
+        }
+
+        // Terminal Logikasi
+        const termInput = document.getElementById('terminalInput');
+        const termBody = document.getElementById('terminalBody');
+
+        termInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                const cmd = this.value.trim().toLowerCase();
+                this.value = '';
+                
+                // Kiritilgan buyruqni ekranga chiqarish
+                printLog(`$ ${cmd}`, 'text-white font-bold');
+
+                setTimeout(() => {
+                    processCommand(cmd);
+                }, 200);
+            }
+        });
+
+        function printLog(text, className = 'text-emerald-500') {
+            const p = document.createElement('p');
+            p.className = className;
+            p.innerHTML = text;
+            termBody.appendChild(p);
+            termBody.scrollTop = termBody.scrollHeight;
+        }
+
+        function processCommand(cmd) {
+            if (cmd === 'help') {
+                printLog("Mavjud buyruqlar:<br>- <span class='text-white'>clear</span>: Ekranni tozalash<br>- <span class='text-white'>scan ports</span>: Tarmoq portlarini skanerlash simulyatsiyasi<br>- <span class='text-white'>system info</span>: Qurilma va tizim haqida qisqa ma'lumot<br>- <span class='text-white'>matrix</span>: Matrix holatini yangilash");
+            } else if (cmd === 'clear') {
+                termBody.innerHTML = '';
+            } else if (cmd === 'scan ports') {
+                printLog("Port skanerlash boshlandi...", "text-yellow-500 font-bold animate-pulse");
+                let ports = [21, 22, 80, 443, 8080];
+                ports.forEach((port, index) => {
+                    setTimeout(() => {
+                        let status = Math.random() > 0.4 ? "<span class='text-red-500'>Yopiq</span>" : "<span class='text-green-400 font-bold'>OCHIQ (Zaiflik topildi!)</span>";
+                        printLog(`Port ${port} tekshirilmoqda... Status: ${status}`);
+                    }, (index + 1) * 600);
+                });
+            } else if (cmd === 'system info') {
+                printLog("Tizim arxitekturasi: AMD Processor OS Core v2.0<br>Xotira statusi: Barqaror<br>Ulanish: Anonim VPN faol.");
+            } else if (cmd === 'matrix') {
+                printLog("Matrix qayta yuklanmoqda... Kodlar oqimi yangilandi.", "text-blue-400");
+            } else if (cmd === '') {
+                // Hech narsa yozilmasa
+            } else {
+                printLog(`Xatolik: "${cmd}" buyrug'i topilmadi. Yordam uchun "help" deb yozing.`, 'text-red-500 font-bold');
+            }
+        }
+    </script>
+</body>
+</html>
